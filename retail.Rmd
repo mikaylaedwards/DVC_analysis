@@ -1,0 +1,123 @@
+---
+title: "churn"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(readxl)
+retail <- read_excel("Online Retail.xlsx")
+View(retail)
+```
+
+
+```{r}
+str(retail)
+retail$Country<-as.factor(retail$Country)
+retail$CustomerID<-as.factor(retail$CustomerID)
+```
+How many unique and NA values are there for each column are in the dataset?
+1. Use summarize_all to apply functions to all columns->produces wide dataframe with one column for each variable & function pair (16 total)
+2. Convert to long format 
+
+```{r}
+
+(r<-retail %>%
+  summarise_all(funs(n_distinct(.),sum(is.na(.)))) %>% gather(variable,value))
+
+##or use list(~n_distinct(.),~...)
+```
+
+
+Separate the variable column on "_", create new columns for num_distinct and sum_NA
+```{r,message=FALSE,warning=FALSE}
+r %>% 
+  separate(variable, c("variable", "stat"), sep = "_") %>%
+  mutate(stat = if_else(stat == "n", "num_distinct", "sum_NA")) %>% 
+  spread(stat, value)
+                                                              
+```
+
+When are the NA values coming from? 
+1.country
+2.time
+
+```{r}
+(na_purchases<-retail %>% filter(is.na(CustomerID)) %>% select(InvoiceNo,InvoiceDate,Country))
+
+na_purchases %>% group_by(Country) %>% ggplot(aes(x=Country))+geom_bar(stat="count")+coord_flip()
+
+na_purchases %>% 
+group_by(order_date=floor_date(InvoiceDate,"day")) %>% 
+summarize(count=n()) %>% 
+ggplot(aes(x=order_date,y=count))+geom_line()
+```
+
+
+There are 4373 unique customers in the dataset. What is the distribution of the number of purchases per customer? 
+```{r,message=FALSE,warning=FALSE}
+retail %>% ggplot(aes(x=CustomerID))+geom_histogram(stat="count",na.rm = T)+ylim(0,2000)
+```
+Some customers have a much larger number of purchases 
+```{r}
+retail %>% count(CustomerID,Country) %>% 
+  top_n(10,n)
+```
+
+
+```{r}
+retail<-retail %>% mutate(revenue=Quantity * UnitPrice)
+
+
+rev_by_month<-retail %>% 
+  select(revenue,InvoiceDate,Country) %>% 
+  mutate(year_mon=floor_date(InvoiceDate,"month") %>% 
+           ymd()) %>% 
+  #don't have full month for Dec 2011
+  filter(year_mon< ymd(20111201))
+
+
+#total sales by month
+monthly_sales<-rev_by_month %>% 
+ group_by(year_mon) %>% 
+  summarise(month_rev=sum(revenue)) %>% 
+  ungroup()
+  
+monthly_sales %>% 
+ ggplot(aes(x=year_mon,month_rev))+
+    geom_line(size=.5)+
+    geom_smooth(method="loess",span=.5)
+  
+```
+
+##Monthly Revenue By Country
+
+```{r}
+( 
+top_rev_countries<-
+rev_by_month %>% group_by(year_mon,Country) %>% 
+  summarise(month_rev=sum(revenue)) %>% group_by(Country) %>% summarise(total_rev=sum(month_rev)) %>% top_n(5,total_rev))
+
+rev_by_month %>% group_by(year_mon,Country) %>% 
+  
+ inner_join(top_rev_countries,by="Country") %>% 
+  summarise(month_rev=sum(revenue)) %>%  
+  ungroup() %>% ggplot(aes(x=year_mon,month_rev,fill=Country))+
+    geom_col()+ scale_fill_brewer(palette = "YlGnBu")+
+  facet_wrap(~Country,scales = "free") + geom_smooth(method="lm",se=FALSE)+ scale_x_date(date_labels = "%b")+ scale_y_continuous(labels=scales::dollar)+theme_dark()
+```
+
+
+```{r}
+
+```
+
