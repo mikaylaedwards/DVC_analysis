@@ -25,16 +25,16 @@ table<-hlink %>% html_nodes("table") %>%
   html_table(header=F,fill=T)
 
 table <- table[[1]]
-table
+
 #add the table to a dataframe
 dict <- as.data.frame(table)
-View(dict)
+dict
 ```
 
 
 ```{r}
 cells <- as_cells(table)
-View(cells)
+cells
 ```
 
 
