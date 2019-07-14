@@ -22,7 +22,7 @@ link<-"https://www.dvcrequest.com/point-chart/bay_lake_towers_2020.html"
 hlink<- read_html(link)
 
 table<-hlink %>% html_nodes("table") %>% 
-html_table(header=F,fill=T)
+  html_table(header=F,fill=T)
 
 table <- table[[1]]
 table
@@ -48,7 +48,7 @@ View(cells)
 ```{r}
 (cellstemp<-
    cells %>% spread(row,chr) %>% filter(!col %in% c('6','10','14'))
- )
+)
 
 
 room_view<-cellstemp[,2:3]
@@ -98,10 +98,6 @@ dfl[dfl$room == "3-BEDROOM\r\n  GRAND VILLA(Sleeps up to 12)","room"] = "3-Bedro
 
 
 ```{r}
-```
-
-
-```{r}
 dfl %>%
   ggplot(aes(x=fct_reorder(room,points),y=points,fill=fct_reorder(view,points)))+geom_boxplot()+scale_fill_brewer(palette= "OrRd")
 ```
@@ -113,13 +109,19 @@ dfl %>%
 room type determines points more than season (less variability)
 
 ```{r}
-dfl %>% filter(room %in% c("Studio","1-Bedroom")) %>% 
-  group_by(room,season) %>% summarize(avg_point=mean(points)) %>% ungroup() %>% 
-  ggplot(aes(x=fct_reorder(season,avg_point),y=avg_point, group=room))+geom_col(aes(fill=room),position = "dodge")+geom_text(aes(label=round(avg_point,1)),
-    position = position_dodge(0.9),
-    vjust = 0)+scale_fill_manual(values = c("skyblue","grey"))
+dfl %>% filter(room %in% c("Studio", "1-Bedroom")) %>%
+  group_by(room, season) %>% summarize(avg_point = mean(points)) %>% ungroup() %>%
+  ggplot(aes(
+    x = fct_reorder(season, avg_point),
+    y = avg_point,
+    group = room
+  )) + geom_col(aes(fill = room), position = "dodge") + geom_text(aes(label =
+                                                                        round(avg_point, 1)),
+                                                                  position = position_dodge(0.9),
+                                                                  vjust = 0) +
+  scale_fill_manual(values = c("skyblue", "grey"))
 ```
 
 ```{r}
- df20<-dfl %>% mutate(resort="BLT")
+df20<-dfl %>% mutate(resort="BLT")
 df20%>% saveRDS(file = "BLT2020.rds")
