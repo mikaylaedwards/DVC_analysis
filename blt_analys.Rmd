@@ -46,9 +46,8 @@ View(cells)
 
 
 ```{r}
-(cellstemp<-
+cellstemp<-
    cells %>% spread(row,chr) %>% filter(!col %in% c('6','10','14'))
-)
 
 
 room_view<-cellstemp[,2:3]
