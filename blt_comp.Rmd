@@ -15,6 +15,7 @@ When you click the **Knit** button a document will be generated that includes bo
 
 ```{r cars}
 library(tidyverse)
+library(lubridate)
 
 bc<-readRDS("BC2020.rds")
 blt<-readRDS("BLT2020.rds")
@@ -44,7 +45,7 @@ avg_points %>%
   labs(y="Points",x="")
   
 ```
-Get difference between BLT, BC for each season & room
+What is the average difference per night between BLT & the BC for each season & room type?
 
 ```{r pressure, echo=FALSE}
 
@@ -81,11 +82,10 @@ From this, we see that SV 2-Bedrooms at BLT require more points across all seaso
 
 To visualize trends by date rather than season, we need to create a dataframe that links each date to a season and then join this with the points dataset.
 ```{r}
-library(lubridate)
 #mdy() in lubridate package means "month-day-year", which is used to convert
 #the string to date object
 start_date <- ymd("2020-01-01")
-#calculate how many days in this time interval
+#calculate how many days in time interval
 date<-start_date + days(0:365)
 date<-as.data.frame(date)
 date
@@ -114,23 +114,82 @@ If a date falls within one of the intervals for a season, classify it accordingl
     ##date falls within any 3 date ranges for each season
     date %within% ad_ints[1] | date %within% ad_ints[2]| date %within% ad_ints[3]~ "adventure",
      date %within% dream_ints[1] | date %within% dream_ints[2]| date %within% dream_ints[3]~ "dream",
-     date %within% magic_ints[1] | date %within% magic_ints[2]| date %within% magic_ints[3]~ "magic",
+     date %within% magic_ints[1] | date %within% magic_ints[2]| date %within% magic_ints[3]| date %within% magic_ints[4]~ "magic",
      date %within% choice_ints[1] | date %within% choice_ints[2]| date %within% choice_ints[3]~ "choice",
      date %within% premier_ints[1] | date %within% premier_ints[2]| date %within% premier_ints[3]~ "premier",
   )
 ))
 ```
+
+
+
 ```{r}
 comp<-comp %>% filter(!view %in% c("MK","LV")) %>% select(-view) %>% mutate(
   season=map_chr(season,~str_to_lower(.x)))
 
 (all_dates<-left_join(df,comp,by="season"))
 ```
+Now our dataframe includes a column with a date for each row. 
 
-Need to dif. s-T &wknd
+How many days are in each season?
+```{r,message=FALSE}
+all_dates %>% group_by(season,room,weekday,resort) %>% 
+  summarize(num_days=n()) %>% 
+  select(season,num_days) %>% 
+  group_by(season) %>% 
+  summarize(
+    total_num_days=max(num_days)
+  ) 
+
+```
+Visualize points by time of year. Horizontal lines are season intervals. Compare for studio & Sun_Th.  
 ```{r}
-all_dates %>% filter(room=="Studio") %>% ggplot(aes(x=date,y=points,group=resort))+
-  geom_line(aes(color=resort))+
-  labs(y="Point Difference / Night  (BLT-BC)")
+plot_comp<-function(roomtype,weekdaytype){
+all_dates %>% filter(room==roomtype,weekday==weekdaytype) %>% 
+  ggplot(aes(x=date,y=points,group=resort))+
+  geom_point(aes(color=season))+
+  scale_x_date(limits = as.Date(c("2020-01-01","2020-12-31")))+
+  labs(y="Points")+
+  ggtitle(paste(roomtype,weekdaytype,sep = ","))+
+  facet_wrap(~resort)
+}
+plot_comp("Studio","Sun_Th")
+plot_comp("1-Bedroom","Sun_Th")
+plot_comp("2-Bedroom","Sun_Th")
+```
+From this it is clear that Beach Club studios are the least economical during the adventure season, as BLT studios are lower only during this time. Sun-Th studios are equivalent for the choice & premier seasons. 
+1-Bedrooms Sun-Th are lower at BLT for every season. 
+2-Bedrooms Sun-Th are the same for adventure, magic, and dream seasons. Beach Club 2-bedrooms are higher during the premier season, while BLT 2-bedrooms are higher during the choice season.
+
+Summary:
+Studio (choice,premier)  --> same
+Studio (dream,magic) --> BLT higher
+Studio (adventure)--> BC higher
+
+1-BD --> BC always higher
+
+2-BD (magic,dream,adventure)-->same
+2-BD (premier)-->BC higher
+2-BD (choice)-->BLT higher
+
+
+```{r}
+plot_comp("Studio","Fri_Sat")
+plot_comp("1-Bedroom","Fri_Sat")
+plot_comp("2-Bedroom","Fri_Sat")
+```
+Studio (adventure, magic)  --> same
+Studio (premier, choice) --> BLT higher
+Studio (dream)--> BC higher
+
+1-BD (premier,dream)  --> same
+1-BD (magic,choice,adventure)  --> BLT higher
+
+2-BD --> BLT always higher
+
+```{r}
+#15 combinations of room & season (3x5)
+#some ties kept
+  comp %>% group_by(room,season,weekday) %>% top_n(1,points) %>% arrange(room,season,weekday)
 ```
 
