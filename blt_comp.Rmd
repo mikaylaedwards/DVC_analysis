@@ -9,6 +9,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## DVC Analysis
 
+In this post, I will the continue analysis from part 1 
+
 ```{r cars}
 library(tidyverse)
 library(lubridate)
@@ -22,9 +24,7 @@ comp$resort<-as.factor(comp$resort)
 head(comp)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
 ```{r pressure, echo=FALSE}
 avg_points<-comp %>%
@@ -130,7 +130,7 @@ df %>% head()
 ```
 
 
-Remove MK/LV views and convert season column to lowercase. Left join to append dates dataframe to existing dataset. 
+Remove Magic Kingdom (MK) & Lake View (LV) rooms and convert season column to lowercase. Left join to append dates dataframe to existing dataset. 
 ```{r}
 comp<-comp %>% filter(!view %in% c("MK","LV")) %>% select(-view) %>% mutate(
   season=map_chr(season,~str_to_lower(.x)))
@@ -180,7 +180,7 @@ Studio (adventure)--> BC higher
 
 1-BD --> BC always higher
 
-2-BD (magic,dream,adventure)-->same
+2-BD (magic,dream,adventure)--> same
 2-BD (premier)-->BC higher
 2-BD (choice)-->BLT higher
 
@@ -232,7 +232,7 @@ rec_stay<-function(dstart,dend){
   geom_col(position = "dodge")+
   xlab("room(SV)")+
   scale_fill_manual(values = c("skyblue","grey"))+
-   ggtitle(paste(dstart,dend,sep = "-"))
+   ggtitle(paste(dstart,dend,sep = "---"))
  
 }
 ```
