@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## DVC Analysis
 
-In this post, I will the continue analysis from part 1 
+In this post, I will the continue my analysis from part 1 
 
 ```{r cars}
 library(tidyverse)
